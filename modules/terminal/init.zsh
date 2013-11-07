@@ -35,7 +35,8 @@ function set-tab-title {
 }
 
 # Sets the tab and window titles with a given command.
-function _terminal-set-titles-with-command {
+function set-titles-with-command {
+
   emulate -L zsh
   setopt EXTENDED_GLOB
 
@@ -61,7 +62,7 @@ function _terminal-set-titles-with-command {
 
     set-window-title "$cmd"
     set-tab-title "$truncated_cmd"
-  fi
+    fi
 }
 
 # Sets the tab and window titles with a given path.
@@ -70,12 +71,18 @@ function _terminal-set-titles-with-path {
   setopt EXTENDED_GLOB
 
   local absolute_path="${${1:a}:-$PWD}"
+
   local abbreviated_path="${absolute_path/#$HOME/~}"
   local truncated_path="${abbreviated_path/(#m)?(#c15,)/...${MATCH[-12,-1]}}"
   unset MATCH
-
-  set-window-title "$abbreviated_path"
-  set-tab-title "$truncated_path"
+  if [[ "$TERM_PROGRAM" == 'Apple_Terminal' ]]; then
+    printf '\e]7;%s\a' "file://$HOST${absolute_path// /%20}"
+    set-terminal-window-title "$abbreviated_path"
+    set-terminal-tab-title "$truncated_path"
+  else
+      set-window-title "$abbreviated_path"
+      set-tab-title "$truncated_path"
+  fi
 }
 
 # Do not override precmd/preexec; append to the hook array.
@@ -89,7 +96,7 @@ then
   # displayed.
   function _terminal-set-terminal-app-proxy-icon {
     printf '\e]7;%s\a' "file://${HOST}${PWD// /%20}"
-  }
+}
   add-zsh-hook precmd _terminal-set-terminal-app-proxy-icon
 
   # Unsets the Terminal.app current working directory when a terminal
@@ -99,8 +106,8 @@ then
   function _terminal-unset-terminal-app-proxy-icon {
     if [[ "${2[(w)1]:t}" == (screen|tmux|dvtm|ssh|mosh) ]]; then
       print '\e]7;\a'
-    fi
-  }
+  fi
+}
   add-zsh-hook preexec _terminal-unset-terminal-app-proxy-icon
 
   # Do not set the tab and window titles in Terminal.app since it sets the tab
